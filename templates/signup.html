@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Signup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #090c10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #b1b8c0;
+        }
+
+        .signup-container {
+            background: #090c10;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 300px;
+        }
+
+        .signup-container h2 {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .signup-container input {
+            width: 90%;
+            height: 30px;
+            padding: 0.5rem 0.5rem 0.5rem 1.2rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            background: #0f1318;
+            color: #b1b8c0;
+        }
+
+        .signup-container button {
+            padding: 0.5rem 1.5rem;
+            background: #5cdd8b;
+            color: black;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            height: 45px;
+        }
+
+        .signup-container button:hover {
+            background: #7ce8a4;
+        }
+        .error { color: red; margin-bottom: 10px; }
+        input.error-border { border: 1px solid red; }
+    </style>
+</head>
+<body>
+<div class="signup-container">
+<h2>Create an Account</h2>
+<div id="signup-form">
+    {{ if .Error }}
+    <div class="error">{{ .Error }}</div>
+    {{ end }}
+
+    <form action="/signup" method="post">
+        <input type="text" name="Name" placeholder="Name" value="{{ .Name }}" {{ if .Error }}class="error-border"{{ end }} required>
+        <input type="email" name="Email" placeholder="Email" value="{{ .Email }}" {{ if .Error }}class="error-border"{{ end }} required>
+        <input type="password" name="Password" placeholder="Password" {{ if .Error }}class="error-border"{{ end }} required>
+        <button type="submit">Register</button>
+    </form>
+</div>
+
+<br>
+<a href="/login">Login</a>
+</div>
+</body>
+</html>
