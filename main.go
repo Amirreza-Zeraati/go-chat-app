@@ -19,7 +19,16 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 
 	routes.AuthRoutes(r)
-	r.GET("/chat", middleware.RequireAuth, chatController.ChatHub)
+
+	r.GET("/chat", middleware.RequireAuth, func(c *gin.Context) {
+		chatController.HandleChatPage(c)
+	})
+
+	r.GET("/ws", func(c *gin.Context) {
+		chatController.HandleConnections(c.Writer, c.Request)
+	})
+
+	go chatController.HandleMessages()
 
 	err := r.Run()
 	if err != nil {

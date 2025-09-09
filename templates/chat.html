@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard</title>
+    <title>Chat App</title>
     <style>
         body {
             margin: 0;
@@ -10,81 +10,173 @@
             background: linear-gradient(180deg, #0b1220, #0f172a);
             color: #e5e7eb;
             min-height: 100vh;
-            display: grid;
-            place-items: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .card {
+        .chat-container {
             width: 100%;
-            max-width: 420px;
+            max-width: 480px;
+            height: 80vh; /* fixed height */
             background: rgba(17, 24, 39, .8);
             backdrop-filter: blur(6px);
             border: 1px solid rgba(148, 163, 184, .15);
             border-radius: 16px;
-            padding: 22px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        h1 {
-            margin: 0 0 10px;
-            font-size: 24px;
+        /* Top bar */
+        .chat-header {
+            flex: 0 0 50px; /* fixed height */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 18px;
+            background: rgba(30, 41, 59, .9);
+            border-bottom: 1px solid rgba(148, 163, 184, .15);
         }
 
-        h2 {
-            font-size: 18px;
-            margin-bottom: 6px;
-            color: #94a3b8;
-        }
-
-        h5 {
-            margin: 6px 0 18px;
-            font-size: 16px;
+        .chat-header .username {
+            font-size: 15px;
+            font-weight: 600;
             color: #22c55e;
         }
 
-        .btn {
-            display: inline-block;
-            padding: 12px 18px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            color: #06110a;
-            font-weight: 600;
-            text-decoration: none;
-            transition: transform .04s ease;
+        .chat-header .app-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #e5e7eb;
         }
 
-        .btn:hover {
+        /* Chat box */
+        .chat-box {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            font-size: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        /* Other users */
+        .message.other {
+            align-self: flex-start;
+            background: rgba(148, 163, 184, .2);
+            color: #e5e7eb;
+        }
+
+        .message.other .name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        /* You */
+        .message.me {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #06110a;
+        }
+
+        /* Input area */
+        .chat-input {
+            flex: 0 0 60px;
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-top: 1px solid rgba(148, 163, 184, .15);
+            background: rgba(17, 24, 39, .9);
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            background: rgba(30, 41, 59, .8);
+            color: #e5e7eb;
+        }
+
+        .chat-input button {
+            margin-left: 10px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #06110a;
+            transition: transform .04s ease, opacity .2s;
+        }
+
+        .chat-input button:hover {
             opacity: 0.9;
         }
 
-        .btn:active {
+        .chat-input button:active {
             transform: translateY(1px);
-        }
-
-        .logout {
-            display: inline-block;
-            margin-top: 16px;
-            font-size: 14px;
-            color: #ef4444;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .logout:hover {
-            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-<div class="card">
-    <h1>Dashboard</h1>
-    <h2>Your Info</h2>
-    <h5>{{ .user.Name }}</h5>
-    <h5>{{ .user.CreatedAt }}</h5>
-    <a href="/users" class="btn">See All Users</a>
-    <br>
-    <a href="/logout" class="logout">Logout</a>
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="username" id="myName">{{ .user.Name }}</div>
+        <div class="app-name">Chat App</div>
+    </div>
+
+    <div class="chat-box" id="chat"></div>
+
+    <div class="chat-input">
+        <input id="msg" type="text" placeholder="Type your message..." />
+        <button onclick="sendMsg()">Send</button>
+    </div>
 </div>
+
+<script>
+    let myName = document.getElementById("myName").innerText;
+    let ws = new WebSocket("ws://" + location.host + "/ws");
+
+    ws.onmessage = (event) => {
+        let chat = document.getElementById("chat");
+        let data = JSON.parse(event.data); // {user, text}
+        let msgDiv = document.createElement("div");
+
+        if (data.user === myName) {
+            msgDiv.className = "message me";
+            msgDiv.innerText = data.text;
+        } else {
+            msgDiv.className = "message other";
+            msgDiv.innerHTML = "<div class='name'>" + data.user + "</div>" + data.text;
+        }
+
+        chat.appendChild(msgDiv);
+        chat.scrollTop = chat.scrollHeight;
+    };
+
+    function sendMsg() {
+        let input = document.getElementById("msg");
+        if (input.value.trim() !== "") {
+            ws.send(JSON.stringify({user: myName, text: input.value}));
+            input.value = "";
+        }
+    }
+</script>
 </body>
 </html>
