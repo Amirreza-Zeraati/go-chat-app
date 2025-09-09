@@ -7,5 +7,6 @@ import (
 type Chat struct {
 	gorm.Model
 	UserID uint
+	Name   string
 	Text   string
 }

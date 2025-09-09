@@ -46,10 +46,16 @@
             color: #22c55e;
         }
 
-        .chat-header .app-name {
-            font-size: 16px;
-            font-weight: 700;
-            color: #e5e7eb;
+        .logout {
+            display: inline-block;
+            font-size: 14px;
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .logout:hover {
+            text-decoration: underline;
         }
 
         /* Chat box */
@@ -102,7 +108,7 @@
             background: rgba(17, 24, 39, .9);
         }
 
-        .chat-input input {
+        .chat-input textarea {
             flex: 1;
             padding: 10px 14px;
             border-radius: 12px;
@@ -111,7 +117,10 @@
             font-size: 14px;
             background: rgba(30, 41, 59, .8);
             color: #e5e7eb;
+            resize: none;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
         }
+
 
         .chat-input button {
             margin-left: 10px;
@@ -132,51 +141,108 @@
         .chat-input button:active {
             transform: translateY(1px);
         }
+
+        .message .time {
+            font-size: 11px;
+            color: #ffffff;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        #msg {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
     </style>
 </head>
 <body>
 <div class="chat-container">
     <div class="chat-header">
-        <div class="username" id="myName">{{ .user.Name }}</div>
-        <div class="app-name">Chat App</div>
+        <div class="username" id="myName">{{ .username }}</div>
+        <a href="/logout" class="logout">Logout</a>
     </div>
 
-    <div class="chat-box" id="chat"></div>
+    <div class="chat-box" id="chat">
+        {{ range .chats }}
+        {{ if eq .Name $.username }}
+        <div class="message me">
+            <div class="text">{{ .Text | nl2br }}</div>
+            <div class="time">{{ .CreatedAt.Format "15:04" }}</div>
+        </div>
+        {{ else }}
+        <div class="message other">
+            <div class="name">{{ .Name }}</div>
+            <div class="text">{{ .Text | nl2br }}</div>
+            <div class="time">{{ .CreatedAt.Format "15:04" }}</div>
+        </div>
+        {{ end }}
+        {{ end }}
+    </div>
 
     <div class="chat-input">
-        <input id="msg" type="text" placeholder="Type your message..." />
+        <textarea id="msg" placeholder="Type your message..." style="resize:none;"></textarea>
         <button onclick="sendMsg()">Send</button>
     </div>
+
 </div>
 
 <script>
     let myName = document.getElementById("myName").innerText;
     let ws = new WebSocket("ws://" + location.host + "/ws");
+    let messages = document.getElementById("chat");
+    window.addEventListener("load", () => {
+        messages.scrollTop = messages.scrollHeight;
+    });
 
-    ws.onmessage = (event) => {
-        let chat = document.getElementById("chat");
-        let data = JSON.parse(event.data); // {user, text}
-        let msgDiv = document.createElement("div");
 
-        if (data.user === myName) {
-            msgDiv.className = "message me";
-            msgDiv.innerText = data.text;
+    ws.onmessage = function (event) {
+        let msg = JSON.parse(event.data);
+
+        let div = document.createElement("div");
+        if (msg.user === myName) {
+            div.className = "message me";
+            div.innerHTML = `<div class="text">${msg.text.replace(/\n/g, "<br>")}</div><div class="time">${msg.time}</div>`;
         } else {
-            msgDiv.className = "message other";
-            msgDiv.innerHTML = "<div class='name'>" + data.user + "</div>" + data.text;
+            div.className = "message other";
+            div.innerHTML = `<div class="name">${msg.user}</div><div class="text">${msg.text.replace(/\n/g, "<br>")}</div><div class="time">${msg.time}</div>`;
         }
-
-        chat.appendChild(msgDiv);
-        chat.scrollTop = chat.scrollHeight;
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
     };
+
+    let input = document.getElementById("msg");
+    input.addEventListener("input", function () {
+        this.style.height = "auto";
+        this.style.height = this.scrollHeight + "px";
+    });
+
+    input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.ctrlKey) {
+            e.preventDefault();
+            sendMsg();
+        } else if (e.key === "Enter" && e.ctrlKey) {
+            let start = input.selectionStart;
+            let end = input.selectionEnd;
+            input.value = input.value.substring(0, start) + "\n" + input.value.substring(end);
+            input.selectionStart = input.selectionEnd = start + 1;
+        }
+    });
+
 
     function sendMsg() {
         let input = document.getElementById("msg");
         if (input.value.trim() !== "") {
-            ws.send(JSON.stringify({user: myName, text: input.value}));
+            let now = new Date();
+            let time = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
+            ws.send(JSON.stringify({user: myName, text: input.value, time: time}));
             input.value = "";
+            input.style.height = "auto";
+            input.focus();
         }
     }
+
+
 </script>
 </body>
 </html>

@@ -6,6 +6,7 @@ import (
 	"go-chat-app/initializers"
 	middleware "go-chat-app/middleware/auth"
 	"go-chat-app/routes"
+	"html/template"
 )
 
 func init() {
@@ -16,16 +17,16 @@ func init() {
 
 func main() {
 	r := gin.Default()
+	r.SetFuncMap(template.FuncMap{
+		"nl2br": chatController.Nl2br,
+	})
 	r.LoadHTMLGlob("templates/*")
-
 	routes.AuthRoutes(r)
-
 	r.GET("/chat", middleware.RequireAuth, func(c *gin.Context) {
 		chatController.HandleChatPage(c)
 	})
-
-	r.GET("/ws", func(c *gin.Context) {
-		chatController.HandleConnections(c.Writer, c.Request)
+	r.GET("/ws", middleware.RequireAuth, func(c *gin.Context) {
+		chatController.HandleConnections(c)
 	})
 
 	go chatController.HandleMessages()
